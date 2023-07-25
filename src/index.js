@@ -1,69 +1,76 @@
-import { fetchBreeds, fetchCatByBreed } from './cat-api';
-// import Notiflix from 'notiflix';
-// import SlimSelect from 'slim-select'
-
+import { fetchBreeds, fetchCatByBreed } from "./cat-api";
 
 const breedSelect = document.querySelector(".breed-select");
 const catInfo = document.querySelector(".cat-info");
 const loader = document.querySelector(".loader");
 const error = document.querySelector(".error");
-// const loadertext = document.querySelector('.loader-text');
 
+function toggleElement(e, s) {
+  e.style.display = s ? "block" : "none";
+}
 
-// function messageError() {
-//   error.style.display = "block"; 
-//   loader.style.display = "none"; 
-// }
-fetchBreeds().then(data => {
-    breedSelect.innerHTML = createMarkup(data);
+function initialPage() {
+  toggleElement(breedSelect, false); 
+  toggleElement(loader, true); 
+  fetchBreeds()
+    .then(breeds => {
+      breeds.forEach(breed => {
+        const option = document.createElement("option");
+        option.value = breed.id;
+        option.textContent = breed.name;
+        breedSelect.appendChild(option);
+      });
 
-    }).catch(() => {
-    showError();
-}).finally(hideLoader());
+      toggleElement(loader, false);
+      toggleElement(breedSelect, true);
+    })
+    .catch(error => {
+      showError("FAIL!!!! Try AGAIN to reloading the page!");
+      toggleElement(loader, false);
+    });
+}
 
-function createMarkup(data) {
-    return data.map(breed=>`<option value="${breed.id}">${breed.name}</option>`).join('');
-};
+function showError(message) {
+  error.textContent = message;
+    error.style.display = "block";
+    
+}
 
-function showLoader() {
-    loader.style.display = "block";
-    breedSelect.style.display = "none";
-    catInfo.style.display = "none";
-    error.style.display = "none";
-};
+function clearError() {
+  error.style.display = "none";
+}
 
-function hideLoader() {
-    loader.style.display = "none";
-};
+breedSelect.addEventListener("change", () => {
+  catInfo.innerHTML = "";
+  clearError();
+  const selectedBreedId = breedSelect.value;
+  toggleElement(loader, true);
 
-function showError() {
-  loader.style.display = "none";
-  breedSelect.style.display = "block";
-  catInfo.style.display = "block";
-  error.style.display = "block";
-};
+  fetchCatByBreed(selectedBreedId)
+    .then(cat => {
+      const image = document.createElement("img");
+      image.src = cat.url;
 
-breedSelect.addEventListener('change', () => {
-    const selectedBreedId = breedSelect.value;
-    showLoader();
+      const catName = document.createElement("p");
+      catName.textContent = `Breed: ${cat.breeds[0].name}`;
 
-    fetchCatByBreed(selectedBreedId)
-        .then(catData => {
-            catInfo.innerHTML = createCatInfoMarkup(catData);
-            hideLoader();
-        }).catch(() => {
-            showError();
-        });
+      const catDescription = document.createElement("p");
+      catDescription.textContent = `Description: ${cat.breeds[0].description}`;
 
+      const catTemperament = document.createElement("p");
+      catTemperament.textContent = `Temperament: ${cat.breeds[0].temperament}`;
 
+      catInfo.appendChild(image);
+      catInfo.appendChild(catName);
+      catInfo.appendChild(catDescription);
+      catInfo.appendChild(catTemperament);
+
+      toggleElement(loader, false);
+    })
+    .catch(error => {
+      showError("FAIL!!!! Try AGAIN to reloading the page!");
+      toggleElement(loader, false);
+    });
 });
 
-
-function createCatInfoMarkup(catData) {
-    const { breed, description, temperament, url } = catData;
-    return `<img src="${url}" alt="Cat">
-    <h2>${breed.name}</h2>
-    <p><b>Description:</b> ${description}</p>
-    <p><b>Temperament:</b> ${temperament}</p>
-    `
-};
+initialPage();
